@@ -69,3 +69,38 @@ Use ?. (optional chaining) when nested fields may not exist.
 Combine with || or ?? for safe defaults.
 Add .filter(...) if you want to completely skip missing ones.
 missing), and another version where it includes "Unknown" placeholders?
+
+<!-- if an API gives you a huge array of users but you only want the first 50, you can use .slice().
+
+🔎 Why .slice()?
+.slice(start, end) → extracts a shallow copy of the array from start up to but not including end.
+Non‑destructive → doesn’t modify the original array, just returns the subarray.
+So if API returns:
+
+JavaScript
+
+const users = await fetch("/api/users").then(res => res.json());
+And you only want the first 50:
+
+JavaScript
+
+const first50 = users.slice(0, 50);
+✅ This gives you indexes 0 → 49 (50 items).
+
+⚡ Alternative: .splice() ❌
+.splice() would also let you grab first 50, but it mutates (removes) items from the original array.
+Example:
+JavaScript
+
+const first50 = users.splice(0, 50);
+first50 = first 50 users
+users = now has all users from index 50 onward (original modified).
+⚠️ Usually not good when you just want a copy.
+⚡ Alternative: .filter() (overkill here)
+You could filter by index:
+
+JavaScript
+
+const first50 = users.filter((_, i) => i < 50);
+Works, but .slice is simpler & faster.
+ -->
