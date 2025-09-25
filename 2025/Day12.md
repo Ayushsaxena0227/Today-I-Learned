@@ -104,3 +104,9 @@ JavaScript
 const first50 = users.filter((_, i) => i < 50);
 Works, but .slice is simpler & faster.
  -->
+
+reduce() accumulator (acc) can be anything you initialize:
+[] → array
+{} → object (for mappings or counters)
+new Set() → Set (for uniqueness smarter/faster)
+Here, because you passed [] as the second argument to reduce, acc is an array.
