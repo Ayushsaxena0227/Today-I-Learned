@@ -82,3 +82,106 @@ acc[item] = (acc[item] || 0) + 1;
 return acc;
 }, {});
 console.log(Occ);
+The “too many useStates” problem
+Every state variable triggers a re-render when it updates.
+So if you scatter your state all over like confetti, your component keeps re-rendering in small bursts.
+
+❌ Over-fragmented example
+React
+
+import { useState } from "react";
+
+function UserProfile() {
+const [name, setName] = useState(""); // 3 separate states
+const [age, setAge] = useState(0);
+const [city, setCity] = useState("");
+
+const handleUpdate = () => {
+setName("Alice");
+setAge(30);
+setCity("London");
+};
+
+console.log("Component re-rendered");
+return (
+<div>
+<p>{name} - {age} - {city}</p>
+<button onClick={handleUpdate}>Update</button>
+</div>
+);
+}
+Problem:
+When you click Update, React queues 3 different state updates and may perform multiple re-renders (depending on batching rules).
+
+✅ Smartly grouped variant
+React
+
+import { useState } from "react";
+
+function UserProfile() {
+// one object holding related properties together
+const [user, setUser] = useState({ name: "", age: 0, city: "" });
+
+const handleUpdate = () => {
+setUser({ ...user, name: "Alice", age: 30, city: "London" });
+};
+
+console.log("Component re-rendered");
+return (
+<div>
+<p>{user.name} - {user.age} - {user.city}</p>
+<button onClick={handleUpdate}>Update</button>
+</div>
+);
+}
+Now one state change → one re-render. Cleaner, faster, easier to maintain.
+
+⚠️ 2. The “bloated dependency” trap in useEffect
+Every time something in your dependency array changes, your effect runs again.
+If you stick complex objects or functions in there wholesale, you’ll cause endless re-renders.
+
+❌ Inefficient version
+React
+
+import { useEffect, useState } from "react";
+
+function Weather({ location }) {
+const [data, setData] = useState(null);
+
+useEffect(() => {
+// ❗ Passing entire location object — changes reference each render
+fetch(`/api/weather?lat=${location.lat}&lon=${location.lon}`)
+.then(res => res.json())
+.then(setData);
+}, [location]); // triggers new fetch even if only location.city changes
+}
+If location is an object like { lat, lon, city }, each render recreates a new object reference, so React reschedules the effect every time even if coordinates haven’t changed.
+
+✅ Targeted dependencies
+React
+
+import { useEffect, useState } from "react";
+
+function Weather({ location }) {
+const [data, setData] = useState(null);
+const { lat, lon } = location; // destructure exact props of interest
+
+useEffect(() => {
+fetch(`/api/weather?lat=${lat}&lon=${lon}`)
+.then(res => res.json())
+.then(setData);
+}, [lat, lon]); // only triggers if those values change
+
+return <div>{data ? <p>{data.temp}°C</p> : "Loading..."}</div>;
+}
+Now React only re-runs this effect when lat or lon values actually change.
+That avoids unnecessary API calls.
+
+🔍 Takeaway
+Anti‑Pattern Fix
+Many separate useStates → many updates Group related state in one object
+Vague or broad dependencies in useEffect List specific primitive values
+Using object/array directly in deps Destructure properties—avoid new references
+💡 Bonus Principle
+Let React re-render only when something meaningful changes.
+Granularity is good in data, but grouping and precision are good in reactivity.
