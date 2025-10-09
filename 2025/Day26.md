@@ -282,3 +282,72 @@ you must stop those background activities; otherwise electricity keeps flowing a
 Unmount = React removes the component from the DOM.
 You don’t trigger it manually; it happens when the component is no longer rendered.
 You should clean up any side‑effects your component created (timers, event listeners, etc.) in a return () => {...} cleanup function inside useEffect.
+ What is an SDK?
+SDK = Software Development Kit
+
+Think of it as a ready‑made toolbox provided by another company (like Razorpay) that you can integrate into your app so you don’t reinvent everything yourself.
+
+It comes with prewritten code, APIs, and sometimes a UI (the checkout popup).
+It hides all the complex payment logic and security rules.
+You just include it in your page and call a function → it opens the secure payment window.
+So when you say “we used Razorpay SDK,” you mean we used Razorpay’s official client library that handles card/UPI payments safely on their side.
+
+💳 What Razorpay’s web SDK actually does
+On the client (frontend):
+
+We load their JavaScript library
+https://checkout.razorpay.com/v1/checkout.js
+→ this is the SDK itself.
+We initialize it with our order details:
+JavaScript
+
+const rzp = new window.Razorpay({
+key: RAZORPAY_KEY_ID,
+order_id: "order_xyz123",
+amount: 49900,
+currency: "INR",
+name: "EMS Premium Mentorship",
+handler: (response) => { ... }
+});
+The SDK shows a secure Razorpay payment modal (that blue‑white popup).
+The user pays with card/UPI/wallet/etc.
+Razorpay’s SDK generates three verified IDs:
+razorpay_order_id – matches the order we created on our backend
+razorpay_payment_id – unique for this transaction
+razorpay_signature – HMAC signature proving Razorpay processed it
+We get those in our handler() callback and then send them to our backend.
+So on the client side, the SDK:
+
+Displays the UI for payment,
+Collects sensitive details safely (we never touch card data),
+Returns cryptographically signed proof of payment.
+🧩 What exactly we had to integrate on the client
+Step SDK part What we did
+
+1. Load SDK checkout.js Created loadRazorpayScript() which inserts the script tag once.
+2. Create Order via API (backend’s responsibility) Before opening Razorpay, call /create-order to get the order_id.
+3. Initialize Razorpay JavaScript class window.Razorpay(options) Passed our key, amount, currency, order_id, prefill details + handler.
+4. Handle Success SDK callback handler(response) Got payment_id, order_id, signature; showed toast ✅; stored them in React state.
+5. Pass to backend Our API bookMentorSlot Sent those IDs → backend verified & saved booking as paid.
+   🔐 Why the SDK is necessary
+   Without it, we’d have to:
+
+Build our own payment UI;
+Transmit card/UPI details (dangerous & non‑compliant with PCI DSS rules);
+Implement signature generation + verification manually;
+Handle banks’ redirections and OTP flows.
+SDK does all that securely and legally.
+
+So when your mam asks “what exactly is this Razorpay SDK?”, you can say:
+
+“It’s Razorpay’s official client‑side JavaScript library that safely handles the entire payment process — we just configure it with our order details, it opens their secure payment popup, processes the transaction, and gives us verified payment IDs. This guarantees we never handle sensitive card data ourselves.”
+
+🧠 Summary explanation (30‑second version)
+“On the frontend we integrated the Razorpay Payment SDK, which is a JavaScript toolkit they provide for secure online payments.
+We load their script, initialize it with the order ID from our backend, and it shows a secure checkout popup.
+When the user completes a test payment, Razorpay returns a payment ID, order ID, and signature to our handler.
+We then pass those IDs to our ‘book mentor slot’ API so the backend can record which payment corresponds to which session.
+This makes the whole unlock‑and‑booking flow secure, verified, and PCI‑compliant.”
+
+👉 That’s your concise story:
+SDK = toolbox; ensures secure payments; we load → initialize → receive → store.
