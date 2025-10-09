@@ -14,6 +14,7 @@ const products = [
 ];
 
 return (
+
 <div>
 <h1>Our Products</h1>
 {products.map(p => (
@@ -28,6 +29,7 @@ React
 
 export default function ProductCard({ name, price }) {
 return (
+
 <div style={{ border: "1px solid gray", padding: "10px", margin: "6px" }}>
 <h3>{name}</h3>
 <p>Price: ${price}</p>
@@ -51,6 +53,7 @@ time: "5:42 PM"
 };
 
 return (
+
 <div>
 <h1>Chat</h1>
 <MessageBubble
@@ -67,6 +70,7 @@ React
 
 export default function MessageBubble({ sender, text, time }) {
 return (
+
 <div style={{ background: "#e9f7ff", borderRadius: "8px", padding: "8px" }}>
 <strong>{sender}</strong> · <span>{time}</span>
 <p>{text}</p>
@@ -87,6 +91,7 @@ const temperature = 28; // degrees Celsius
 const city = "Delhi";
 
 return (
+
 <div>
 <h1>Weather Report</h1>
 <TemperatureDisplay city={city} temp={temperature} />
@@ -99,6 +104,7 @@ React
 
 export default function TemperatureDisplay({ city, temp }) {
 return (
+
 <p>
 🌤️ Current temperature in <strong>{city}</strong> is <strong>{temp}°C</strong>
 </p>
@@ -126,6 +132,7 @@ React
 function Parent() {
 const [count, setCount] = useState(0);
 return (
+
 <div>
 <button onClick={() => setCount(count + 1)}>Increase</button>
 <Child name="Alice" />
@@ -200,3 +207,78 @@ Props frequently change anyway Accept the rerender (React is fast!)
 React re‑renders when data it depends on changes.
 React.memo + useMemo + useCallback help you tell React,
 “Don’t bother re‑drawing this; nothing truly changed.”
+
+et’s go carefully through what unmounting means, why it happens, and why you sometimes need to handle it in useEffect.
+
+🧠 1️⃣ What “unmount” actually means
+In React, there’s a complete lifecycle for each component:
+
+Mount: the component is created and inserted into the DOM.
+Update: its state or props change and it re‑renders.
+Unmount: it’s removed from the DOM (React deletes it).
+So “unmounting” = the moment React cleans up and removes your component from the page.
+
+Example:
+Imagine you have this small app:
+
+React
+
+{showProfile && <UserProfile />}
+When showProfile is true, UserProfile mounts.
+When showProfile becomes false, React removes it → unmounts that component.
+⚙️ 2️⃣ Why we care about unmounting
+Unmounting by itself is automatic; React removes elements efficiently.
+
+But you may need to handle cleanup manually when your component created some side effects while it was alive.
+
+Typical cleanup situations
+Side effect you created Why cleanup matters
+setInterval or setTimeout Otherwise those timers keep running forever in the background
+Subscribed to a WebSocket or event listener You don’t want events firing for a component that’s gone
+Start a network request You might need to cancel or ignore the response if it comes after unmount
+Added global CSS class or DOM manipulation Need to undo those alterations
+Without cleanup, your app can leak memory, send duplicate network requests, or attempt to update non‑existent components (which causes “state updates on unmounted component” warnings).
+
+🔧 3️⃣ How to handle unmounting with useEffect
+useEffect can return a cleanup function.
+React calls that cleanup right before the component unmounts
+(or before the effect runs again on updates).
+
+Example:
+
+React
+
+useEffect(() => {
+console.log("Component mounted");
+
+// set up an interval
+const intervalId = setInterval(() => console.log("running..."), 1000);
+
+// 👇 cleanup runs when component unmounts
+return () => {
+clearInterval(intervalId);
+console.log("Component unmounted, interval cleared");
+};
+}, []); // only mount & unmount because deps = []
+When the component disappears, React calls that inner function — your cleanup runs, freeing resources.
+
+💡 4️⃣ When do components unmount in real apps?
+Navigating away from a route
+Conditional rendering toggles ({show && <Comp/>})
+Parent re‑renders with fewer children
+Components being replaced by others in lists
+Essentially, anytime its parent stops including it in the rendered tree.
+
+🧩 5️⃣ Tiny analogy
+Think of mounting and unmounting like plugging in and unplugging a gadget.
+
+While it’s plugged in, it might:
+
+use electricity (timers, listeners, subscriptions)
+When you unplug (unmount):
+
+you must stop those background activities; otherwise electricity keeps flowing and wastes power → memory leaks in programming terms.
+✅ In short
+Unmount = React removes the component from the DOM.
+You don’t trigger it manually; it happens when the component is no longer rendered.
+You should clean up any side‑effects your component created (timers, event listeners, etc.) in a return () => {...} cleanup function inside useEffect.
