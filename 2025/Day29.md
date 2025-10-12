@@ -52,3 +52,38 @@ onClick={() => handleDelete(id)} → you give React a helper:
 
 Don’t put ()  directly → because it executes immediately.
 Do wrap it in () => … if you need to defer execution with arguments.
+ow optional chaining works
+?. says:
+
+“If the thing on the left exists (is not null or undefined), go ahead and access the next property;
+otherwise stop here and just give me undefined — don’t throw an error.”
+
+Without it, if user or info were missing, this line would crash with:
+
+text
+
+TypeError: Cannot read properties of undefined (reading 'info')
+✅ What happens in your case
+All levels exist, so:
+
+arr → object exists
+- arr.user → exists
+- arr.user.info → exists
+- arr.user.info.name → exists → returns "Ayush"
+Output:
+
+text
+
+Ayush
+🔒 If one level were missing
+Example:
+
+JavaScript
+
+const arr = {};
+console.log(arr?.user?.info?.name);
+Here:
+- arr.user is undefined,
+so JS stops right there and returns undefined, without throwing an error.
+
+No crash, just safely undefined.
