@@ -89,3 +89,28 @@ React only creates ~20–30 DOM nodes at any moment, not thousands.
 Smooth scrolling even on slower devices.
 Great for tables, chat windows, long feeds, file lists, etc.
 🧩 Summary Table
+import { useState } from "react";
+// 4. Add a “Clear” button to reset an input field back to empty
+// Build a form that stores firstName, lastName in state and displays the full name below as you type (live preview).
+export default function Name() {
+// const [firstName, SetfirstName] = useState("");
+// const [lastName, SetLastName] = useState("");
+const [text, Settext] = useState("");
+const handleCLick = () => {
+Settext("");
+};
+return (
+<>
+<h1>Live name</h1>
+<input
+type="text"
+name=""
+id=""
+onChange={(e) => Settext(e.target.value)}
+value={text}
+/>
+{/_ <p>{text}</p> _/}
+<button onClick={handleCLick}>Clear Input</button>
+</>
+);
+}
