@@ -101,7 +101,7 @@ It tells the browser: “Run this later after 2 seconds.”
 Browser finishes its timer and drops your callback back into the event loop.
 When your turn comes, JS runs it.
 
- → Remember the result of a function.
+→ Remember the result of a function.
 useCallback → Remember the function itself.
 In short:
 
@@ -117,34 +117,34 @@ React
 import { useMemo, useState } from "react";
 
 export default function ExpensiveList({ numbers }) {
-  const [filter, setFilter] = useState(false);
+const [filter, setFilter] = useState(false);
 
-  // ⏱️ Heavy computation: filter primes (just example)
-  const primes = useMemo(() => {
-    console.log("Calculating primes..."); // runs only when numbers change
-    return numbers.filter(isPrime);
-  }, [numbers]);
+// ⏱️ Heavy computation: filter primes (just example)
+const primes = useMemo(() => {
+console.log("Calculating primes..."); // runs only when numbers change
+return numbers.filter(isPrime);
+}, [numbers]);
 
-  return (
-    <div>
-      <button onClick={() => setFilter(!filter)}>
-        Toggle Filter ({filter.toString()})
-      </button>
-      <ul>
-        {primes.map((n) => (
-          <li key={n}>{n}</li>
-        ))}
-      </ul>
-    </div>
-  );
+return (
+<div>
+<button onClick={() => setFilter(!filter)}>
+Toggle Filter ({filter.toString()})
+</button>
+<ul>
+{primes.map((n) => (
+<li key={n}>{n}</li>
+))}
+</ul>
+</div>
+);
 }
 
 function isPrime(n) {
-  if (n < 2) return false;
-  for (let i = 2; i < n; i++) {
-    if (n % i === 0) return false;
-  }
-  return true;
+if (n < 2) return false;
+for (let i = 2; i < n; i++) {
+if (n % i === 0) return false;
+}
+return true;
 }
 🔍 Behavior:
 useMemo runs that calculation only when numbers change.
@@ -161,8 +161,8 @@ That means something like this:
 React
 
 function Parent() {
-  const handleClick = () => console.log("clicked");
-  return <Child onClick={handleClick} />;
+const handleClick = () => console.log("clicked");
+return <Child onClick={handleClick} />;
 }
 creates a new handleClick every render.
 
@@ -176,32 +176,64 @@ React
 import { useCallback, useState, memo } from "react";
 
 const Child = memo(({ onClick }) => {
-  console.log("Child rendered!");
-  return <button onClick={onClick}>Click Me</button>;
+console.log("Child rendered!");
+return <button onClick={onClick}>Click Me</button>;
 });
 
 export default function Parent() {
-  const [count, setCount] = useState(0);
+const [count, setCount] = useState(0);
 
-  const handleClick = useCallback(() => {
-    console.log("Clicked!");
-  }, []); // stable reference between renders
+const handleClick = useCallback(() => {
+console.log("Clicked!");
+}, []); // stable reference between renders
 
-  return (
-    <div>
-      <h3>Count: {count}</h3>
-      <button onClick={() => setCount(count + 1)}>Increment count</button>
-      <Child onClick={handleClick} />
-    </div>
-  );
+return (
+<div>
+<h3>Count: {count}</h3>
+<button onClick={() => setCount(count + 1)}>Increment count</button>
+<Child onClick={handleClick} />
+</div>
+);
 }
 🔍 Behavior:
 handleClick keeps the same reference between renders (unless dependencies change).
 React.memo(Child) sees the prop reference is the same → skips re‑rendering.
 Performance improves in component trees with many memoized children.
 🚀 When to Use
-Situation	Hook to Use	Why
-You have expensive computation returning a value (filter, sort, map, calculation)	useMemo	Avoid recomputing unnecessarily
-You’re passing a callback function to a memoized child (React.memo, custom hooks, event handlers)	useCallback	Avoid re‑creating function identity
-You need to memoize derived data (e.g., filteredList, totalPrice, sortedItems)	useMemo	Keeps derived data cached
-You need to memoize event handlers or actions	useCallback	Keeps same handler instance
+Situation Hook to Use Why
+You have expensive computation returning a value (filter, sort, map, calculation) useMemo Avoid recomputing unnecessarily
+You’re passing a callback function to a memoized child (React.memo, custom hooks, event handlers) useCallback Avoid re‑creating function identity
+You need to memoize derived data (e.g., filteredList, totalPrice, sortedItems) useMemo Keeps derived data cached
+You need to memoize event handlers or actions useCallback Keeps same handler instance
+
+// // ↓ just keep an accumulator for the cleaned string
+// let cleaned = "";
+
+// str.split("").forEach((ch) => {
+// if (isAlphanumeric(ch) || ch === " ") {
+// cleaned += ch;
+// }
+// });
+
+// console.log(cleaned); // hll wrld
+
+// function isAlphanumeric(ch) {
+// return (ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z");
+// }
+// let cleaned = "";
+// str.split("").forEach((ch) => {
+// if (isAlphanumeric(ch) || ch === " ") {
+// cleaned += ch;
+// }
+// });
+// console.log(cleaned);
+// Return only unique words from "one two two three three three".
+// → ["one","two","three"]
+const str = "one two two three three three";
+const rtet = str.split(" ").reduce((acc, item) => {
+if (!acc.includes(item)) {
+acc.push(item);
+}
+return acc;
+}, []);
+console.log(rtet);
