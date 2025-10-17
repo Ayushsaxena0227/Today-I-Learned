@@ -100,3 +100,108 @@ JS does not sit idle waiting 2 seconds (it’s single‑threaded).
 It tells the browser: “Run this later after 2 seconds.”
 Browser finishes its timer and drops your callback back into the event loop.
 When your turn comes, JS runs it.
+
+ → Remember the result of a function.
+useCallback → Remember the function itself.
+In short:
+
+useMemo = “I remember what I got ✅”
+useCallback = “I remember how I got it 🔁”
+
+💻 1️⃣ Example — useMemo: Memorize Expensive Calculations
+Imagine a large array filter or data transformation that takes noticeable time.
+Without memoization, React runs that logic on every render, even if inputs haven’t changed.
+
+React
+
+import { useMemo, useState } from "react";
+
+export default function ExpensiveList({ numbers }) {
+  const [filter, setFilter] = useState(false);
+
+  // ⏱️ Heavy computation: filter primes (just example)
+  const primes = useMemo(() => {
+    console.log("Calculating primes..."); // runs only when numbers change
+    return numbers.filter(isPrime);
+  }, [numbers]);
+
+  return (
+    <div>
+      <button onClick={() => setFilter(!filter)}>
+        Toggle Filter ({filter.toString()})
+      </button>
+      <ul>
+        {primes.map((n) => (
+          <li key={n}>{n}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i < n; i++) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+🔍 Behavior:
+useMemo runs that calculation only when numbers change.
+React remembers (memoizes) the output of the callback.
+On re‑renders (due to filter toggling, for instance), the expensive code won’t rerun.
+Without useMemo: the filter(isPrime) recomputes every single render.
+With useMemo: it caches and reuses the previous result.
+
+💡 2️⃣ Example — useCallback: Memorize Function References
+React function components re‑create all their functions on every render by default.
+
+That means something like this:
+
+React
+
+function Parent() {
+  const handleClick = () => console.log("clicked");
+  return <Child onClick={handleClick} />;
+}
+creates a new handleClick every render.
+
+If Child is wrapped in React.memo(), it still re‑renders because the prop (onClick) changed identity every time.
+
+To fix that:
+➡️ You memoize the function reference using useCallback.
+
+React
+
+import { useCallback, useState, memo } from "react";
+
+const Child = memo(({ onClick }) => {
+  console.log("Child rendered!");
+  return <button onClick={onClick}>Click Me</button>;
+});
+
+export default function Parent() {
+  const [count, setCount] = useState(0);
+
+  const handleClick = useCallback(() => {
+    console.log("Clicked!");
+  }, []); // stable reference between renders
+
+  return (
+    <div>
+      <h3>Count: {count}</h3>
+      <button onClick={() => setCount(count + 1)}>Increment count</button>
+      <Child onClick={handleClick} />
+    </div>
+  );
+}
+🔍 Behavior:
+handleClick keeps the same reference between renders (unless dependencies change).
+React.memo(Child) sees the prop reference is the same → skips re‑rendering.
+Performance improves in component trees with many memoized children.
+🚀 When to Use
+Situation	Hook to Use	Why
+You have expensive computation returning a value (filter, sort, map, calculation)	useMemo	Avoid recomputing unnecessarily
+You’re passing a callback function to a memoized child (React.memo, custom hooks, event handlers)	useCallback	Avoid re‑creating function identity
+You need to memoize derived data (e.g., filteredList, totalPrice, sortedItems)	useMemo	Keeps derived data cached
+You need to memoize event handlers or actions	useCallback	Keeps same handler instance
