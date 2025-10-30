@@ -209,3 +209,123 @@ Storing JWT in localStorage (vulnerable to XSS) – prefer HTTP-only cookies.
 Using weak secret keys.
 Forgetting to set token expiry time.
 15️⃣ What’s the difference between Authentication and Authorization?
+🧩 1️⃣ What is a JWT?
+JWT (JSON Web Token) is a small text token that proves who you are and sometimes what you’re allowed to do.
+It’s used mostly for authentication in modern web apps.
+
+It’s called JSON Web Token because:
+
+it’s formatted as JSON, and
+it travels over the web (usually in HTTP headers).
+A JWT looks like this:
+
+text
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJpZCI6MSwidXNlcm5hbWUiOiJCcmFqIn0.
+YJxgZtX8btlA3Vd61ZQp5pU_O7U8bmXimDgUTYUVII8
+Don’t worry — that jumble is just Base‑64‑encoded JSON.
+
+🧠 2️⃣ Structure — three parts separated by dots
+Part Name What’s inside
+① Header describes algorithm (HS256, RS256 …) and type (“JWT”)
+② Payload the actual data (“claims”) such as user id, email, roles
+③ Signature cryptographic proof created from header + payload + secret key
+Example payload (decoded):
+
+JSON
+
+{
+"id": 1,
+"username": "Braj",
+"role": "admin",
+"exp": 1715089687 // expiry timestamp
+}
+🔐 3️⃣ How JWT authentication works end‑to‑end in a full‑stack app
+🧍 Frontend (step 1: login)
+1. User submits credentials (email + password).
+2. Frontend sends them to the server:
+
+http
+
+POST /api/login
+{ "email": "user@example.com", "password": "secret" }
+🖥 Backend (step 2: verify + create token)
+Server (Node, Express, Nest etc.):
+
+1. Checks the credentials against the database.
+2. If valid, creates a token:
+
+JavaScript
+
+const jwt = require("jsonwebtoken");
+const token = jwt.sign(
+{ id: user.id, name: user.name },
+process.env.JWT_SECRET,
+{ expiresIn: "1h" }
+);
+3. Sends that token back to the client:
+
+JSON
+
+{ "token": "eyJhbGciOiJI..." }
+💾 Frontend (step 3: store the token)
+Save it securely — usually in:
+localStorage, or
+an HTTP‑only cookie (safer against XSS).
+🔁 Frontend (step 4: make authorized requests)
+For protected routes, include token in the Authorization header:
+
+http
+
+GET /api/profile
+Authorization: Bearer eyJhbGciOiJI...
+🖥 Backend (step 5: verify token on each request)
+Middleware on the server checks that the token is valid:
+
+JavaScript
+
+function verifyToken(req, res, next) {
+const auth = req.headers.authorization;
+const token = auth && auth.split(" ")[1];
+if (!token) return res.status(401).send("No token");
+
+try {
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+req.user = decoded; // attach user info to request
+next();
+} catch {
+res.status(403).send("Invalid or expired token");
+}
+}
+If verification succeeds → request continues to controller.
+If not → user gets “Unauthorized”.
+
+🧭 Lifecycle Overview
+text
+
+[ User Login ]
+↓
+Server validates + issues JWT
+↓
+Frontend stores it
+↓
+Requests → send JWT in header
+↓
+Server verifies signature → grants access
+⚙️ 4️⃣ Why use JWT?
+Benefit Explanation
+Stateless The server doesn’t need a user‑session table; all info lives inside the token.
+Compact Token is small enough to fit in headers, quick to send.
+Portable Works across domains, APIs, and mobile apps.
+Expiring Built‑in exp claim lets tokens automatically expire.
+⚠️ 5️⃣ Common safety notes
+Issue Tip
+Don’t store sensitive data (passwords) Payload is encoded, not encrypted — anyone can decode it.
+Token theft Use HTTPS and short expiration; refresh tokens if needed.
+Revocation / logout Keep a “blacklist” or rotate secrets if a token must be invalidated early.
+✅ 6️⃣ Summary in one sentence
+JWT = a signed mini‑JSON package proving a user’s identity;
+the backend issues it after login, the frontend stores and sends it with each request, and middleware verifies it before granting access.
+
+That’s how JWTs move smoothly through a f
