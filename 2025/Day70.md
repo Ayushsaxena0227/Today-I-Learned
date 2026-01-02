@@ -100,3 +100,79 @@ await redis.del("all_questions");
 
 res.status(201).json(newQ);
 };
+
+Rate Limiting: The Bouncer
+🧩 Concept: "Nightclub ka Bouncer"
+Imagine kar tu ek Nightclub (Tera Server) chala raha hai.
+Agar darwaze pe koi bouncer nahi hai, aur 10,000 log ek saath ghusne ki koshish karein, to kya hoga?
+Stampede (Server Crash)! 😵
+
+Rate Limiting wo Bouncer hai jo darwaze pe khada hoke bolta hai:
+"Ruko bhai! Ek bande ko sirf 1 minute mein 5 baar andar-bahar karne ki permission hai. Usse zyada kiya to 15 minute ke liye ban."
+
+🛑 Problem Kya Hai? (DDoS & Brute Force)
+Bina Rate Limiting ke do badi problems hoti hain:
+
+DDoS Attack: Koi hacker script likh ke tere API pe 1 second mein 1 Lakh requests bhej dega. Tera CPU 100% ho jayega aur asli users block ho jayenge.
+Brute Force: Hacker tere login API (/login) pe har second alag-alag password try karega jab tak sahi na mil jaye.
+🛠️ Code Implementation (Code Snippet)
+Node.js mein iske liye standard library hai: express-rate-limit
+Isko install kar: npm install express-rate-limit
+
+Dekh isko kaise lagate hain (server.js ya alag file mein):
+
+JavaScript
+
+const rateLimit = require("express-rate-limit");
+
+// 1️⃣ Bouncer ke rules define karo
+const limiter = rateLimit({
+windowMs: 15 _ 60 _ 1000, // 15 Minutes ka time window
+max: 100, // Limit: Ek IP se sirf 100 requests allowed hain
+message: "Bhai bas kar! Bohot requests bhej di. 15 minute baad aana.", // Error message
+standardHeaders: true, // Headers mein info bhejega (RateLimit-Limit, RateLimit-Remaining)
+legacyHeaders: false,
+});
+
+// 2️⃣ App mein apply karo
+// Iska matlab: Saare routes (/questions, /users) pe ye rule lagega
+app.use(limiter);
+
+// 💡 PRO TIP: Sirf specific route pe lagana hai?
+// Example: Login route pe strict rule lagana chahiye (Brute force rokne ke liye)
+const loginLimiter = rateLimit({
+windowMs: 15 _ 60 _ 1000,
+max: 5, // Sirf 5 attempts allowed!
+message: "Too many login attempts. Account locked for 15 mins."
+});
+
+app.use("/auth/login", loginLimiter); // Sirf login pe strict bouncer
+🕵️‍♂️ Output Kya Hoga?
+Jab user 100 requests cross karega, usko 429 Too Many Requests error milega.
+Browser/Postman mein aisa response aayega:
+
+JSON
+
+{
+"status": 429,
+"message": "Bhai bas kar! Bohot requests bhej di. 15 minute baad aana."
+}
+Aur Headers mein dikhega:
+
+RateLimit-Limit: 100 (Total allowed)
+RateLimit-Remaining: 0 (Ab kitni bachi hain)
+🧠 Interview Question: "Server restart hua to kya hoga?"
+Agar tu express-rate-limit (default memory store) use kar raha hai, to server restart hone pe sabki limit reset ho jayegi. Hacker khush ho jayega.
+
+Solution: Production (Bade apps) mein hum Rate Limiting ka data Redis mein rakhte hain.
+(Redis data RAM mein rakhta hai, jo server restart hone par bhi persist kiya ja sakta hai agar configured ho, ya alag server pe ho).
+
+Par abhi ke liye, express-rate-limit memory wala kaafi hai tere projects ke liye.
+
+🚀 Summary
+Rate Limiting tere server ko overload hone se bachata hai.
+DDoS aur Brute Force attacks ko rokta hai.
+Library: express-rate-limit.
+Best Practice:
+Public APIs (GET questions): Loose limit (e.g., 100 req/15min).
+Sensitive APIs (Login/Signup): Strict limit (e.g., 5 req/15min).
