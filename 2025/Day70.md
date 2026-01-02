@@ -176,3 +176,34 @@ Library: express-rate-limit.
 Best Practice:
 Public APIs (GET questions): Loose limit (e.g., 100 req/15min).
 Sensitive APIs (Login/Signup): Strict limit (e.g., 5 req/15min).
+. Unique Index (Sirf Unique)
+Matlab: "Database mein koi bhi do logon ka yeh data SAME nahi ho sakta."
+
+Example - Email:
+Socho aapke paas 3 users aa rahe hain:
+
+Rahul: email = rahul@gmail.com (Pass ✅)
+Priya: email = priya@gmail.com (Pass ✅)
+Rahul (Duplicate): email = rahul@gmail.com (Fail ❌ - Error aayega)
+Isliye email par hum Unique Index lagate hain.
+
+2. Problem kya hai GoogleID ke saath? (Why simply Unique fails)
+   Aapke code mein jab koi user Normal Email/Password se sign up karta hai, to aap uska googleId kya set kar rahe ho? null.
+
+Agar aapne googleId par sirf Unique lagaya (aur Sparse nahi lagaya), to MongoDB null ko bhi ek "value" maanta hai.
+
+Dekho kya hoga:
+
+User A (Email wala): googleId: null -> MongoDB bolega: "Okay, pehla null hai. Save kar liya." ✅
+User B (Email wala): googleId: null -> MongoDB bolega: "Ruko! Mere paas pehle se ek banda hai jiska googleId null hai. Yeh Duplicate hai! Error!" ❌
+Result: Aapki website par sirf EK hi banda email/password se register kar payega. Doosre bande ko error aa jayega. Yeh toh galat hai na?
+
+3. Sparse Index (Solution)
+   Matlab: "MongoDB bhai, suno. Agar kisi document mein woh field (googleId) missing hai ya null hai, to usko IGNORE karo. Usko index mein count mat karo. Lekin agar value hai (koi ID hai), to check karo ki woh Unique hai ya nahi."
+
+Jab aap Unique + Sparse dono lagate ho, to kya hota hai:
+
+User A (Email wala): googleId: null -> MongoDB: "Sparse hai, isko ignore karo." (Save ✅)
+User B (Email wala): googleId: null -> MongoDB: "Isko bhi ignore karo." (Save ✅)
+User C (Google wala): googleId: "12345" -> MongoDB: "Value hai! Check karta hu duplicate to nahi... Nahi hai." (Save ✅)
+User D (Hacker using User C's ID): googleId: "12345" -> MongoDB: "Pakda gaya! Yeh ID pehle se hai." (Error ❌)
