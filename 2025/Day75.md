@@ -116,3 +116,118 @@ If you want to sound like a Pro, try to weave these sentences into your conversa
 "I always memoize my list items (React.memo) inside FlatList to prevent unnecessary re-renders." (Shows performance knowledge).
 "I use Platform.select for minor styling tweaks between iOS and Android." (Shows clean code habits).
 "I prefer Functional Components with Hooks over Class Components." (Shows you are modern).
+treams: The Water Pipe Concept
+🛑 The Problem: "Bucket Strategy" (fs.readFile)
+Abhi tak tu file aise padhta hoga:
+fs.readFile('movie.mp4')
+
+Ye kya karta hai?
+
+Poori 2GB ki movie ko pehle RAM (Memory) mein load karta hai.
+Fir user ko bhejta hai.
+Nuksan:
+
+Agar server ki RAM sirf 1GB hai, aur file 2GB ki hai -> CRASH! (Heap Out of Memory) 💥
+User ko wait karna padega jab tak poori file load na ho jaye.
+✅ The Solution: "Pipe Strategy" (fs.createReadStream)
+Hum poori file ko memory mein nahi rakhenge. Hum usko Boond-Boond (Chunks) karke bhejenge.
+
+Tanki (Hard Drive) se paani (Data) pipe (Stream) mein aaya.
+Seedha User ke glass mein gaya.
+RAM mein kabhi bhi paani jama nahi hua, bas beh gaya.
+🛠️ Implementation
+Scenario 1: User ko Badi File (Video/PDF) Bhejna
+File: controllers/fileController.js
+
+JavaScript
+
+const fs = require('fs');
+const path = require('path');
+
+const downloadBigFile = (req, res) => {
+const filePath = path.join(\_\_dirname, '../files/big-movie.mp4');
+
+// ❌ BAD WAY (Don't do this for big files)
+// const file = fs.readFileSync(filePath);
+// res.send(file);
+
+// ✅ GOOD WAY (Streams)
+// 1. Stream banao (Nalka kholo)
+const stream = fs.createReadStream(filePath);
+
+// 2. Pipe (Jodna): File Stream -> Response Stream
+// Jaise jaise data padha jayega, waise waise user ko bheja jayega
+stream.pipe(res);
+
+// Error handling zaroori hai (Agar pipe phat jaye)
+stream.on('error', (err) => {
+res.status(500).json({ error: "Stream mein error aa gaya" });
+});
+};
+Fayda:
+User turant video dekhna shuru kar sakta hai (Buffering), use poori file download hone ka wait nahi karna padega. Aur Server ki RAM sirf kuch KBs use hogi.
+
+Scenario 2: Badi CSV File Process Karna (Upload & Save)
+Imagine kar user ne 10 Lakh Users ki CSV file upload ki hai. Tujhe DB mein save karna hai.
+
+Agar tu poori file ek saath padhega -> RAM Full -> Server Dead.
+
+Hum use karenge: npm install csv-parser
+
+JavaScript
+
+const fs = require('fs');
+const csv = require('csv-parser');
+
+const processCsvUpload = (req, res) => {
+const results = [];
+
+// req.file.path wo file hai jo Multer ne save ki hai
+fs.createReadStream(req.file.path)
+.pipe(csv()) // Converter: Raw Buffer -> JSON Object
+.on('data', (data) => {
+// 🌊 Ye event har EK ROW ke liye call hoga
+// Hum yahan data modify kar sakte hain
+// Example: results.push(data) ya seedha DB mein insert karo
+
+      // Pro Tip: Yahan batch mein insert karna chahiye (e.g. 100 rows at a time)
+      console.log("Reading row:", data.name);
+    })
+    .on('end', () => {
+      // Jab poori file khatam ho jaye
+      console.log("CSV Processing Complete ✅");
+      res.json({ message: "File processed successfully" });
+    });
+
+};
+🧠 Types of Streams (Interview Gyan)
+Node.js mein 4 tarah ki streams hoti hain:
+
+Readable Stream: Jisse data padha jata hai (Source).
+Ex: fs.createReadStream, req (User jo data bhejta hai).
+Writable Stream: Jisme data likha jata hai (Destination).
+Ex: fs.createWriteStream, res (User ko response bhejna).
+Duplex Stream: Dono kaam kar sakta hai.
+Ex: Sockets (WebSockets).
+Transform Stream: Data ko beech mein modify karta hai.
+Ex: zlib.createGzip() (File ko on-the-fly compress/zip karna).
+🔥 Cool Trick: File ko Zip karke bhejna
+JavaScript
+
+const zlib = require('zlib'); // Built-in Node module
+
+const downloadZipped = (req, res) => {
+const source = fs.createReadStream('input.txt');
+const gzip = zlib.createGzip(); // Transform Stream (Compressor)
+
+// Pipeline: Source -> Compressor -> User
+res.setHeader('Content-Encoding', 'gzip');
+source.pipe(gzip).pipe(res);
+};
+🚀 Summary
+Streams data ko chunks (tukdo) mein handle karta hai.
+Memory Efficient: 1GB RAM mein 100GB ki file process kar sakte ho.
+Time Efficient: Processing turant shuru ho jati hai (wait nahi karna padta).
+Keyword: .pipe() (Ek stream ko dusre se jodna).
+Ab bata, Streams ka concept clear hua?
+Next topic kya karein?
