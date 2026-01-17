@@ -198,3 +198,101 @@ What Interviewers Expect:
 "What are the benefits of a controlled custom component?" Answer: "It allows the parent component to have full control over its state. This is essential for building complex forms where one field's value can affect another, or for resetting the entire form state from a single button click."
 "Why would you ever want an uncontrolled one?" Answer: "For simplicity. If a component's state is completely self-contained and no other part of the app needs to know about it, the uncontrolled pattern requires less boilerplate code from the consumer."
 Why it matters: This is a senior-level component design concept. It shows you can build a flexible, reusable, and developer-friendly API for your components, which is the core challenge of creating a good design system or component library.
+called the Component Lifecycle.
+
+There are 3 Main Phases:
+
+Mounting (Birth: Component is added to the DOM/Screen).
+Updating (Growth: Component updates because data changed).
+Unmounting (Death: Component is removed from the DOM/Screen).
+We will cover both Functional Components (Hooks) (what we use today) and Class Components (what interviewers ask).
+
+Phase 1: Mounting (Birth)
+Definition: This is the moment the component is created and inserted into the web page (DOM).
+
+English Explanation:
+This phase happens only once per component instance. It is the perfect place to make API calls (fetch data) or set up subscriptions.
+
+Hinglish Explanation:
+Ye wo stage hai jab component pehli baar screen par aata hai. Isse "Birth" keh sakte hain. Agar aapko API se data lana hai ya timer start karna hai, toh wo hum isi phase mein karte hain.
+
+Class Component: componentDidMount()
+Functional Component: useEffect with empty array [].
+JavaScript
+
+// Functional Component
+useEffect(() => {
+console.log("I just mounted (Born). Fetch Data here.");
+
+// API Call
+fetch('/api/user').then(data => setUser(data));
+
+}, []); // <--- Empty Array means "Run Once"
+Phase 2: Updating (Growth)
+Definition: This happens whenever the component's State or Props change. The component "re-renders" to show the new data.
+
+English Explanation:
+A component is like a living thing; it reacts to changes. If a parent passes new props or you call setState, the component enters the Updating phase. You can listen for these changes to run logic (e.g., auto-save when user types).
+
+Hinglish Explanation:
+Jab bhi component ka data badalta hai (State ya Props change hote hain), component khud ko refresh (re-render) karta hai taaki naya data dikh sake. Isse "Growth" kehte hain. Hum yahan logic laga sakte hain ki "Agar user ID badal gayi, toh naya profile fetch karo."
+
+Class Component: componentDidUpdate(prevProps, prevState)
+Functional Component: useEffect with dependencies [propName].
+JavaScript
+
+// Functional Component
+useEffect(() => {
+console.log("Count changed to:", count);
+// Auto-save logic could go here
+}, [count]); // <--- Runs ONLY when 'count' changes
+Phase 3: Unmounting (Death)
+Definition: This happens when the component is removed from the DOM (e.g., user navigates to a different page, or a conditional if (show) becomes false).
+
+English Explanation:
+This is the Cleanup phase. If you started a Timer (setInterval) or added a messy Event Listener (like scrolling) in the Mounting phase, you MUST remove it here. If you don't, it creates a "Memory Leak" (app gets slower).
+
+Hinglish Explanation:
+Jab component screen se hatne wala hota hai (marne wala hota hai), tab ye phase chalta hai. Yahan hum safai karte hain. Agar aapne koi timer chalaya tha ya browser window pe scroll listener lagaya tha, toh use yahan band karna padta hai. Agar band nahi kiya, toh background mein chalta rahega aur site slow ho jayegi.
+
+Class Component: componentWillUnmount()
+Functional Component: return () => { ... } inside useEffect.
+JavaScript
+
+// Functional Component
+useEffect(() => {
+console.log("Mounted");
+
+const timer = setInterval(() => {
+console.log("Tick Tock");
+}, 1000);
+
+// The Cleanup Function (Unmounting)
+return () => {
+console.log("Component Died. Stopping Timer.");
+clearInterval(timer);
+};
+}, []);
+Quick Comparison Table (Cheat Sheet)
+Phase Meaning Class Component Functional Component (Hooks)
+Mounting Birth / Init componentDidMount() useEffect(() => { ... }, [])
+Updating Re-render componentDidUpdate() useEffect(() => { ... }, [data])
+Unmounting Death / Cleanup componentWillUnmount() useEffect(() => { return () => { ... } }, [])
+Deep Dive: Why is useEffect special?
+In the old days (Class components), logic was split. You started a timer in DidMount and stopped it in WillUnmount. It was messy because related code was in different places.
+
+English:
+useEffect combines all lifecycle methods into one API. It handles mounting, updating, and unmounting in a single block of code, making it cleaner.
+
+Hinglish:
+Pehle Class components mein code bikhra hua hota tha (start ek function mein, stop doosre function mein). useEffect ne sabko ek saath jod diya. Ek hi jagah start karo aur wahi return mein stop karo. Code clean rehta hai.
+
+Interview Q&A for Web Lifecycle
+Q: What is the dependency array in useEffect?
+
+English: It tells React when to run the effect. If it's empty [], it runs once (Mount). If it has variables [id], it runs when id changes (Update). If no array is provided, it runs on every render (Dangerous!).
+Hinglish: Ye array React ko batata hai ki code kab chalana hai. Agar khali [] hai, toh sirf ek baar chalega. Agar usme [id] likha hai, toh jab bhi ID badlegi tab chalega.
+Q: What causes a re-render in React?
+
+English: A re-render happens when State changes or Props change. Also, if the Parent re-renders, the Child re-renders by default.
+Hinglish: Jab bhi state (useState) update hoti hai ya parent se naye props aate hain, tab component re-render hota hai.
