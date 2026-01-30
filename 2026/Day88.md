@@ -151,3 +151,77 @@ Code mein dekho:
 Payload mein sirf userId aur role dala. Password nahi.
 res.json({ token }) bhejne ki jagah res.cookie use kiya.
 httpOnly: true ka matlab hai ki agar koi hacker tumhari site pe malicious script (JS) chala de, tab bhi wo document.cookie karke tumhara token chura nahi payega. Ye security ke liye best practice hai.
+e Reality of the "Crash" (Monolith vs. Microservice)
+Scenario: A bug in the "Product Review" feature causes an Infinite Loop.
+
+Monolith:
+
+The CPU hits 100%.
+The Entire Server freezes.
+Result: Login stops working. Payments stop working. The whole app is dead.
+Hinglish: Ek choti si "Review" feature ki galti ne poora app band kar diya. Na koi login kar pa raha hai, na paise de pa raha hai. Sab khatam.
+Microservices:
+
+The "Review Service" CPU hits 100% and crashes.
+Result: Users can't see reviews. BUT, they can still Login. They can still Buy products.
+Hinglish: Sirf "Review" wala section error dikhayega. Par user abhi bhi login kar sakta hai aur payment karke saman khareed sakta hai. Business chalta rahega.
+Correction to the LinkedIn Post:
+The post says "If Auth is down -> nobody logs in". True. Auth is a critical service.
+But if Notification Service is down?
+
+In Monolith: The crash might kill the server -> App Dead.
+In Microservices: The email won't go, but the Order is placed successfully.
+Benefit 1: Blast Radius Reduction. (Ek bomb phata toh poora shehar nahi udta, sirf ek ghar udta hai).
+
+2. The Real Reason: "Team Scaling" (Not just Code Scaling)
+   This is the #1 reason companies switch.
+
+Scenario: You have 500 developers.
+
+Monolith:
+
+500 people are pushing code to the SAME Github repository.
+Merge conflicts everywhere.
+Deploying takes 1 hour because the codebase is 50GB.
+If Team A breaks something, Team B's deployment gets cancelled.
+Hinglish: 500 log ek hi kitchen mein khana bana rahe hain. Bohot bhid hai. Agar ek ne namak zyada daal diya, toh poora khana kharab.
+Microservices:
+
+Team A works on "Payment Service". They have their own Git Repo, own Database.
+Team B works on "User Service".
+Team A can deploy "Payment V2" without asking Team B.
+They can use Java for Payments and Node.js for Users.
+Hinglish: Har team ka apna kitchen hai. Team A pizza bana rahi hai, Team B burger. Agar Pizza jal gaya, toh Burger wale ko koi fark nahi padta. Wo apna burger customers ko de sakta hai.
+Benefit 2: Independent Deployment & Speed.
+
+3. Scaling Resources (Money Saver)
+   Scenario: It's "Big Billion Days". Everyone is Browsing products (Search Service), but only a few are Buying (Payment Service).
+
+Monolith:
+
+You have to clone the entire app (Search + Payment + Auth) 100 times to handle the Search traffic.
+You are wasting RAM on "Payment Code" which isn't being used much.
+Hinglish: Poora haathi (Elephant) clone karna pad raha hai, sirf isliye kyunki uski soond (trunk) ka kaam hai. Waste of money.
+Microservices:
+
+You spin up 100 copies of Search Service.
+You keep only 5 copies of Payment Service.
+Hinglish: Jahaan zaroorat hai, wahan paise lagao. Search pe load hai? Search ke servers badha do. Payment pe load nahi hai? Usko chota rakho. This saves millions of dollars.
+Benefit 3: Granular Scaling.
+
+4. The "LinkedIn Post" Truth (The Dark Side)
+   The post is warning you about Complexity.
+
+If you use Microservices for a startup with 5 developers:
+
+You will spend 90% time managing "DevOps" (Kubernetes, Docker, Networks).
+Debugging is hell (Distributed Tracing needed).
+Network calls are slower than function calls.
+Rule of Thumb:
+
+Monolith: 0 - 50 Developers. (Start here. Always).
+Microservices: 50+ Developers, or when the Monolith becomes impossible to deploy efficiently.
+Summary for Interview
+If the recruiter asks: "Microservices vs Monolith - Which is better?"
+
+Your Answer:
