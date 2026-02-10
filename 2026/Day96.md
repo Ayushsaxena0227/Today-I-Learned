@@ -85,3 +85,84 @@ Compression: Express mein Gzip compression enable karunga taaki response size ka
 PM2 Clustering: Default Node ek core use karta hai, main PM2 se saare CPU cores use karunga.
 Non-Blocking: Main kabhi bhi fs.sync functions use nahi karunga, hamesha Async/Await use karunga.
 Offloading: Agar koi heavy calculation hai (jaise Image Processing), toh main use Worker Thread ya Queue mein daal dunga taaki main server block na ho."
+Designing a Social Media app (like Instagram, Twitter, or LinkedIn) is one of the most complex System Design questions because of the Scale. It’s not just about storing data; it’s about serving it fast to millions of users.
+
+Here is the Full Stack Architecture breakdown.
+
+The Architecture: "Polyglot Persistence"
+Social media apps use different databases for different purposes. One single MongoDB or SQL database cannot handle everything.
+
+1. User Data & Relationships (The Graph)
+   Data: Users, Followers, Following.
+   Database: PostgreSQL (SQL) or Neo4j (Graph DB).
+   Why: We need strict relationships. "Ayush follows Rahul". SQL joins handle this well. Graph DBs are even better for "Friends of Friends" queries.
+2. Posts & Feed (The Heavy Data)
+   Data: Captions, Comments, Post Metadata.
+   Database: Cassandra or MongoDB (NoSQL).
+   Why: These databases are "Write Heavy". They can handle millions of posts being created every second better than SQL.
+3. Media Storage (Images/Videos)
+   Data: The actual JPG/MP4 files.
+   Storage: AWS S3 (Object Storage).
+   Delivery: CDN (CloudFront).
+   Concept: Never store images in the database. Store them in S3, get a URL (e.g., s3.amazon.com/image1.jpg), and store that URL in MongoDB.
+4. The "News Feed" (The Hardest Part)
+   Data: The list of posts you see when you open the app.
+   Database: Redis (In-Memory).
+   Deep Dive: How the "News Feed" Works (Fan-Out)
+   This is the interview winner.
+   Scenario: You follow 500 people. When you open the app, how does the server find their posts and sort them by time instantly?
+
+If you do a database query: SELECT \* FROM Posts WHERE user_id IN (list_of_500_people), the database will crash. It's too slow.
+
+The Solution: Fan-Out on Write (Push Model)
+
+Ayush posts a photo.
+The backend doesn't just save the post.
+A background worker (Queue) wakes up.
+Worker checks: "Who follows Ayush?" (Let's say 1000 people).
+Worker goes to Redis and inserts the Post ID into the "Feed List" of those 1000 people in advance.
+Result: When the follower opens the app, we don't query the database. We just read their pre-made list from Redis. It loads in 5ms.
+Hinglish:
+"Jab hum app kholte hain, server us time calculate nahi karta ki kya dikhana hai. Wo calculation pehle hi ho chuki hoti hai.
+Jaise hi maine post kiya, backend ne mere saare followers ki ek 'Personal Diary' (Redis List) mein wo post ka ID daal diya. Jab follower app kholega, server bas wo diary padh ke dikha dega. Isse Fan-out on Write kehte hain."
+
+5. Likes & Counters (High Concurrency)
+   Scenario: Virat Kohli posts. 1 Million likes in 10 minutes.
+   If you update the SQL database for every like (UPDATE posts SET likes = likes + 1), the database will lock and crash.
+
+The Solution: Redis Buffer
+
+User clicks "Like".
+Update the counter in Redis (Ram is super fast).
+Every 1 minute, a script takes the total count from Redis and updates the SQL database once.
+Hinglish:
+"Har 'Like' click par hum Database ko disturb nahi karte. Hum Redis mein counter badhate rehte hain (+1, +1). Phir 1 minute baad, hum Database ko bolte hain: 'Bhai, total 500 likes aaye hain, ab update kar lo'. Isse Database pe load kam padta hai."
+
+6. Chat & Notifications (Real-Time)
+   Tech: WebSockets (Socket.io).
+   HTTP requests (REST) won't work because the server needs to push messages to you without you asking.
+
+Chat: User A sends message -> Server (Socket) -> User B.
+Persistence: Chat history is usually stored in MongoDB or HBase (because chat history is huge and rarely modified).
+Summary: Building the "Instagram" Clone
+If a recruiter asks: "Design the High-Level Architecture of Instagram."
+
+Your Answer:
+
+"I would design it using a Microservices Architecture:
+
+Frontend: React Native/Next.js with CDN for serving images/videos instantly.
+Databases (Polyglot):
+PostgreSQL for User Auth and Follower relationships (SQL).
+MongoDB/Cassandra for storing Post metadata and Comments (NoSQL).
+Redis for Caching Feeds and Like counters.
+AWS S3 for storing the actual Image/Video files.
+Feed Generation: I would use the Fan-out on Write pattern. When a user posts, a background job (using BullMQ/Kafka) pushes that post ID to all their followers' Redis feeds. This ensures the reading experience is super fast.
+Scaling: I would use a Load Balancer (Nginx) to distribute traffic and separate 'Read' and 'Write' database replicas to handle high traffic."
+Hinglish Summary:
+"Sir, main alag-alag kaam ke liye alag database use karunga.
+Users aur followers ke liye SQL (Postgres).
+Posts ke data ke liye NoSQL (MongoDB).
+Images ke liye AWS S3.
+Feed fast load ho, isliye main Redis use karunga. Jab koi post karega, main background mein hi uske followers ki feed ready kar dunga (Fan-out).
+Aur likes count karne ke liye main direct DB update nahi karunga, pehle Redis mein count karunga, phir batch mein DB update karunga."
